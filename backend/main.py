@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict, List
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 
 from core import auth, config
 from routers import clients, datasets, reports
@@ -32,22 +32,37 @@ async def list_clients(
     current_user: Dict[str, Any] = Depends(auth.get_current_user),
 ) -> List[Dict[str, Any]]:
     supabase = config.get_supabase_client()
-    response = (
-        supabase.table("clients")
-        .select("id, name, firm_id, client_user_access!inner(user_id, firm_id)")
-        .eq("client_user_access.user_id", current_user["app_user_id"])
-        .eq("client_user_access.firm_id", current_user["firm_id"])
-        .execute()
-    )
-    clients_payload = [
+    try:
+        access_response = (
+            supabase.table("client_user_access")
+            .select("client_id")
+            .eq("user_id", current_user["app_user_id"])
+            .eq("firm_id", current_user["firm_id"])
+            .execute()
+        )
+        client_ids = [row.get("client_id") for row in access_response.data or [] if row.get("client_id")]
+        if not client_ids:
+            return []
+
+        clients_response = (
+            supabase.table("clients")
+            .select("id, name, firm_id")
+            .in_("id", client_ids)
+            .eq("firm_id", current_user["firm_id"])
+            .execute()
+        )
+    except Exception as exc:
+        logging.exception("Supabase query failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Supabase query failed") from exc
+
+    return [
         {
             "client_id": client.get("id"),
             "name": client.get("name"),
             "firm_id": client.get("firm_id"),
         }
-        for client in response.data or []
+        for client in clients_response.data or []
     ]
-    return clients_payload
 
 
 app.include_router(datasets.router)
