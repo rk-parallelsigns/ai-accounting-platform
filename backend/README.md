@@ -34,3 +34,32 @@ curl -H "Authorization: Bearer <SUPABASE_JWT>" \
 curl -H "Authorization: Bearer <SUPABASE_JWT>" \
   http://localhost:8000/clients
 ```
+
+```bash
+curl -H "Authorization: Bearer <SUPABASE_JWT>" \
+  http://localhost:8000/datasets
+```
+
+```bash
+curl -X POST http://localhost:8000/datasets/create \
+  -H "Authorization: Bearer <SUPABASE_JWT>" \
+  -H "Content-Type: application/json" \
+  -d '{"client_id":"<uuid>","name":"January Close","notes":"optional"}'
+```
+
+```bash
+curl -X POST http://localhost:8000/datasets/<dataset_id>/files \
+  -H "Authorization: Bearer <SUPABASE_JWT>" \
+  -H "Content-Type: application/json" \
+  -d '{"filename":"ledger.csv","file_type":"csv","storage_path":"s3://bucket/ledger.csv","size_bytes":12345}'
+```
+
+```bash
+curl -H "Authorization: Bearer <SUPABASE_JWT>" \
+  http://localhost:8000/datasets/<dataset_id>
+```
+
+```bash
+curl -X POST http://localhost:8000/datasets/<dataset_id>/process \
+  -H "Authorization: Bearer <SUPABASE_JWT>"
+```
